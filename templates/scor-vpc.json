@@ -12,10 +12,10 @@
       "PublicSubnetTwo": {
         "CIDR": "172.20.20.0/27"
       },
-      "WorkspacesSubnet1d": {
+      "WorkspacesSubnet1b": {
         "CIDR": "172.20.50.0/24"
       }, 
-      "WorkspacesSubnet1e": {
+      "WorkspacesSubnet1c": {
         "CIDR": "172.20.60.0/24"
       }, 
       "InfrastructureSubnet1d": {
@@ -197,11 +197,11 @@
         }
       }
     },
-    "WorkspacesSubnet1dRouteTableAssociation": {
+    "WorkspacesSubnet1bRouteTableAssociation": {
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": {
-          "Ref": "WorkspacesSubnet1d"
+          "Ref": "WorkspacesSubnet1b"
         },
         "RouteTableId": {
           "Ref": "PrivateRouteTableOne"
@@ -239,29 +239,29 @@
         }
       }
     },
-    "WorkspacesSubnet1eRouteTableAssociation": {
+    "WorkspacesSubnet1cRouteTableAssociation": {
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": {
-          "Ref": "WorkspacesSubnet1e"
+          "Ref": "WorkspacesSubnet1c"
         },
         "RouteTableId": {
           "Ref": "PrivateRouteTableTwo"
         }
       }
     },
-    "WorkspacesSubnet1d": {
+    "WorkspacesSubnet1b": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "VpcId": {
           "Ref": "VPC"
         },
         "CidrBlock": {
-          "Fn::FindInMap": [ "Networking", "WorkspacesSubnet1d", "CIDR" ]
+          "Fn::FindInMap": [ "Networking", "WorkspacesSubnet1b", "CIDR" ]
         },
 
 	"AvailabilityZone": {
-          "Fn::Select": [ "3", 
+          "Fn::Select": [ "0", 
 		  { 
           "Fn::GetAZs": {
                 "Ref": "AWS::Region"
@@ -273,23 +273,23 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": "Workspaces 1d"
+            "Value": "Workspaces 1b"
           }
         ]
       } 
     }, 
-    "WorkspacesSubnet1e": {
+    "WorkspacesSubnet1c": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "VpcId": {
           "Ref": "VPC"
         },
         "CidrBlock": {
-          "Fn::FindInMap": [ "Networking", "WorkspacesSubnet1e", "CIDR" ]
+          "Fn::FindInMap": [ "Networking", "WorkspacesSubnet1c", "CIDR" ]
         },
 
 	"AvailabilityZone": {
-          "Fn::Select": [ "4", 
+          "Fn::Select": [ "1", 
 		  { 
           "Fn::GetAZs": {
                 "Ref": "AWS::Region"
@@ -301,7 +301,7 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": "Workspaces 1e"
+            "Value": "Workspaces 1c"
           }
         ]
       } 
