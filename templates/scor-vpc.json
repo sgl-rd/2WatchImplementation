@@ -12,13 +12,13 @@
       "PublicSubnetTwo": {
         "CIDR": "172.20.20.0/27"
       },
-      "WorkspacesSubnet1c": {
+      "WorkspacesSubnet1d": {
         "CIDR": "172.20.50.0/24"
       }, 
-      "WorkspacesSubnet1d": {
+      "WorkspacesSubnet1e": {
         "CIDR": "172.20.60.0/24"
       }, 
-      "InfrastructureSubnet1c": {
+      "InfrastructureSubnet1d": {
         "CIDR": "172.20.70.0/24"
       } 
     }
@@ -197,22 +197,22 @@
         }
       }
     },
-    "WorkspacesSubnet1cRouteTableAssociation": {
+    "WorkspacesSubnet1dRouteTableAssociation": {
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": {
-          "Ref": "WorkspacesSubnet1c"
+          "Ref": "WorkspacesSubnet1d"
         },
         "RouteTableId": {
           "Ref": "PrivateRouteTableOne"
         }
       }
     },
-    "InfrastructureSubnet1cRouteTableAssociation": {
+    "InfrastructureSubnet1dRouteTableAssociation": {
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": {
-          "Ref": "InfrastructureSubnet1c"
+          "Ref": "InfrastructureSubnet1d"
         },
         "RouteTableId": {
           "Ref": "PrivateRouteTableOne"
@@ -239,45 +239,17 @@
         }
       }
     },
-    "WorkspacesSubnet1dRouteTableAssociation": {
+    "WorkspacesSubnet1eRouteTableAssociation": {
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
       "Properties": {
         "SubnetId": {
-          "Ref": "WorkspacesSubnet1d"
+          "Ref": "WorkspacesSubnet1e"
         },
         "RouteTableId": {
           "Ref": "PrivateRouteTableTwo"
         }
       }
     },
-    "WorkspacesSubnet1c": {
-      "Type": "AWS::EC2::Subnet",
-      "Properties": {
-        "VpcId": {
-          "Ref": "VPC"
-        },
-        "CidrBlock": {
-          "Fn::FindInMap": [ "Networking", "WorkspacesSubnet1c", "CIDR" ]
-        },
-
-	"AvailabilityZone": {
-          "Fn::Select": [ "3", 
-		  { 
-          "Fn::GetAZs": {
-                "Ref": "AWS::Region"
-              }
-	     }
-	   ]
-         },
-
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "Workspaces 1c"
-          }
-        ]
-      } 
-    }, 
     "WorkspacesSubnet1d": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
@@ -289,7 +261,7 @@
         },
 
 	"AvailabilityZone": {
-          "Fn::Select": [ "4", 
+          "Fn::Select": [ "3", 
 		  { 
           "Fn::GetAZs": {
                 "Ref": "AWS::Region"
@@ -306,14 +278,14 @@
         ]
       } 
     }, 
-    "InfrastructureSubnet1c": {
+    "WorkspacesSubnet1e": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
         "VpcId": {
           "Ref": "VPC"
         },
         "CidrBlock": {
-          "Fn::FindInMap": [ "Networking", "InfrastructureSubnet1c", "CIDR" ]
+          "Fn::FindInMap": [ "Networking", "WorkspacesSubnet1e", "CIDR" ]
         },
 
 	"AvailabilityZone": {
@@ -329,7 +301,35 @@
         "Tags": [
           {
             "Key": "Name",
-            "Value": "Infrastructure 1c"
+            "Value": "Workspaces 1e"
+          }
+        ]
+      } 
+    }, 
+    "InfrastructureSubnet1d": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "VPC"
+        },
+        "CidrBlock": {
+          "Fn::FindInMap": [ "Networking", "InfrastructureSubnet1d", "CIDR" ]
+        },
+
+	"AvailabilityZone": {
+          "Fn::Select": [ "4", 
+		  { 
+          "Fn::GetAZs": {
+                "Ref": "AWS::Region"
+              }
+	     }
+	   ]
+         },
+
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "Infrastructure 1d"
           }
         ]
       } 
