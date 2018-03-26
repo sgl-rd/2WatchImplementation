@@ -15,12 +15,12 @@
         "VPC": {
             "Description": "VPC ID",
             "Type": "String",
-            "Default": "vpc-057f7d04c2b820641"
+            "Default": "vpc-01b511c2e7c4bdc24"
         },
         "Subnet":{
             "Description": "VPC ID",
             "Type": "String",
-            "Default": "subnet-087ea09f630ad76ae"
+            "Default": "subnet-0b8b92cbdf91eb465"
         },
         "InstanceType": {
             "Description": "Select one of the possible instance types",
