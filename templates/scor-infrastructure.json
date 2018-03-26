@@ -1,0 +1,57 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "CloudFormation template for creating an ec2 instance",
+    "Parameters": {
+        "KeyName": {
+            "Description": "Key Pair name",
+            "Type": "AWS::EC2::KeyPair::KeyName",
+            "Default": "scor-randd-prod"
+        },
+        "AMI": {
+            "Description": "AMI ID",
+            "Type": "String",
+            "Default": "ami-cab14db7"
+        },
+        "VPC": {
+            "Description": "VPC ID",
+            "Type": "String",
+            "Default": "vpc-05f3a040e26f05b8f"
+        },
+        "Subnet":{
+            "Description": "VPC ID",
+            "Type": "String",
+            "Default": "subnet-053ec7a02648dd2b6"
+        },
+        "InstanceType": {
+            "Description": "Select one of the possible instance types",
+            "Type": "String",
+            "Default": "t2.large",
+            "AllowedValues": ["t2.medium", "t2.large"]
+        }
+    },
+    "Resources":{
+        "SecurityGroup":{
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "SG-Infrastructure",
+                "VpcId": {"Ref": "VPC"},
+                "SecurityGroupIngress": [{
+                    "CidrIp": "172.20.0.0/16",
+                    "FromPort": 0,
+                    "IpProtocol": "tcp",
+                    "ToPort": 65535
+                }]
+            }
+        },
+        "Server": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "ImageId": {"Ref": "AMI"},
+                "InstanceType": {"Ref": "InstanceType"},
+                "KeyName": {"Ref": "KeyName"},
+                "SecurityGroupIds": [{"Ref": "SecurityGroup"}],
+                "SubnetId": {"Ref": "Subnet"}
+            }
+        }
+    }
+}
