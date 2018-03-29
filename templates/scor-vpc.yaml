@@ -32,7 +32,10 @@ Resources:
       Tags:
         - Key: Name
           Value: SCOR_R_and_D
-
+        - Key: Project
+          Value: ""
+        - Key: 2w:ServiceTier
+          Value: ""
   # Gateways and MISC Network
   InternetGateway:
     Type: 'AWS::EC2::InternetGateway'
