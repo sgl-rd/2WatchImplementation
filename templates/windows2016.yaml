@@ -1,11 +1,11 @@
-# ubuntu1604.yaml
+# windows2016.yaml
 # Author: Brent Clements bclements@2ndwatch.com
 # TODO:
 #   1. Add more Parameter Labels
-#   2. Update SSSD Paramemters once access to ADFS is restored
+
 AWSTemplateFormatVersion: "2010-09-09"
 Description:
-  Template to deploy a Ubuntu 16.04 Instance
+  Template to deploy a Windows 2016 Instance
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -50,12 +50,12 @@ Parameters:
       - m5.xlarge 
     Description: Enter t2.micro, m1.small, or m1.large. Default is t2.micro.
   KeyName:
-    Description: "Name of an existing EC2 KeyPair to enable SSH access to the instance"
+    Description: "Name of an existing EC2 KeyPair to enable Local Windows Admin access to the instance"
     Type: "AWS::EC2::KeyPair::KeyName"
     ConstraintDescription: "Must be the name of an existing EC2 KeyPair."
   InstanceProfile:
     Type: "String"
-    Description: "Name of the IAM Instance Profile"
+    Description: "Name of the IAM Instance Profile. Please choose an Instance Profile which includes Managed Policy: arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
   # EC2 Instance Network Configuration Parameters
   HostName:
     Type: "String"
@@ -112,13 +112,13 @@ Parameters:
     Description: Enter the purpose for the deployment of this instance. Default DataScience.
   Tag2wServiceTier:
     Type: String
-    Default: OPERATE
+    Default: OPTIMIZE
     AllowedValues:
       - OPTIMIZE
       - OPERATE
       - MONITOR
       - SELF MANAGE
-    Description: Enter the 2nd Watch Support Option. Choose OPTIMIZE for Windows Systems and Operate for Linux Systems. Default is OPERATE.
+    Description: Enter the 2nd Watch Support Option. Choose OPTIMIZE for Windows Systems and Operate for Linux Systems. Default is OPTIMIZE.
   Tagcpmbackup:
     Type: String
     Default: 3
@@ -131,63 +131,67 @@ Parameters:
 Mappings:
   AMIRegionMap:
     us-east-1:
-      "64": "ami-43a15f3e"
+      "64": "ami-cab14db7"
     us-east-2:
-      "64": "ami-916f59f4"
+      "64": "ami-bc784ed9"
     us-west-1:
-      "64": "ami-925144f2"
+      "64": "ami-aaa2a8ca"
     us-west-2:
-      "64": "ami-4e79ed36"
+      "64": "ami-ef9a0e97"
 
 Resources:
-  UbuntuInstance:
+  myssmdocument:
+    Type: 'AWS::SSM::Document'
+    Properties:
+      Content:
+        schemaVersion: '1.2'
+        description: Join instances to an AWS Directory Service domain.
+        parameters:
+          directoryId:
+            type: String
+            description: (Required) The ID of the AWS Directory Service directory.
+          directoryName:
+            type: String
+            description: >-
+              (Required) The name of the directory; for example,
+              test.example.com
+          dnsIpAddresses:
+            type: StringList
+            default: []
+            description: >-
+              (Optional) The IP addresses of the DNS servers in the directory.
+              Required when DHCP is not configured. Learn more at
+              http://docs.aws.amazon.com/directoryservice/latest/simple-ad/join_get_dns_addresses.html
+            allowedPattern: >-
+              ((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)
+        runtimeConfig:
+          'aws:domainJoin':
+            properties:
+              directoryId: '{{ directoryId }}'
+              directoryName: '{{ directoryName }}'
+              dnsIpAddresses: '{{ dnsIpAddresses }}'
+  WindowsInstance:
     Type: "AWS::EC2::Instance"
-    Metadata:
-      AWS::CloudFormation::Init:
-        config:
-          commands:
-            01_update_instance_atfirstboot:
-              command: !Sub |
-                #!/bin/bash -v
-                apt-get update -y
-                apt-get upgrade -y
-            02_install_ssm_agent:
-              command: !Sub |
-                #!/bin/bash -v
-                cd /tmp
-                wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
-                dpkg -i amazon-ssm-agent.deb
-                systemctl enable amazon-ssm-agent
-            03_join_instance_to_domain:
-              command: !Sub |
-                #!/bin/bash -v
-                apt-get -y install sssd realmd krb5-user samba-common
-                realm join -U svclinuxdomainjoin@us.scorrd.local us.scorrd.local --verbose
-                systemctl start sssd.service
-                sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config"
-          files:
-            /etc/hostname:
-              mode: "000644"
-              owner: "root"
-              group: "root"
-              content: !Sub |
-                ${HostName}
     Properties:
       SubnetId: !Ref SubnetId
       InstanceType: !Ref InstType
       IamInstanceProfile: !Ref InstanceProfile
-      ImageId: !FindInMap [AMIRegionMap, !Ref "AWS::Region", 64] # Ubuntu 16.04 HVM
+      ImageId: !FindInMap [AMIRegionMap, !Ref "AWS::Region", 64]
       SecurityGroups: !Ref SecurityGroups
       KeyName: !Ref KeyName
-      BlockDeviceMappings:
-        -
-          DeviceName: /dev/sda1
-          Ebs:
-            VolumeSize: 20
-        -
-          DeviceName: /dev/sdm
-          Ebs:
-            VolumeSize: 30
+      SsmAssociations:
+        - DocumentName: !Ref myssmdocument
+          AssociationParameters:
+            - Key: directoryId
+              Value:
+                - "d-90672ce68d"
+            - Key: directoryName
+              Value:
+                - "us.scorrd.local"
+            - Key: dnsIpAddresses
+              Value:
+                - 172.20.50.165
+                - 172.20.60.65
       Tags:
         - Key: Name
           Value: !Ref HostName
@@ -207,8 +211,3 @@ Resources:
           Value: !Ref TagEnvironmentClass
         - Key: cpmbackup
           Value: !Ref Tagcpmbackup
-      UserData:
-        Fn::Base64: !Sub |
-          /opt/aws/bin/cfn-init -s ${AWS::StackId} -r UbuntuInstance --region ${AWS::Region}
-
-
