@@ -1,0 +1,215 @@
+# ubuntu1604.yaml
+# Author: Brent Clements bclements@2ndwatch.com
+# TODO:
+#   1. Add more Parameter Labels
+#   2. Update SSSD Paramemters once access to ADFS is restored
+AWSTemplateFormatVersion: "2010-09-09"
+Description:
+  Template to deploy a Ubuntu 16.04 Instance
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "EC2 Instance Configuration"
+        Parameters:
+          - InstType
+          - KeyName
+          - InstanceProfile
+      - Label:
+          default: "EC2 Instance Network Configuration"
+        Parameters:
+          - HostName
+          - SubnetId
+          - SecurityGroups
+      - Label:
+          default: "EC2 Instance Tags"
+        Parameters:
+          - TagEnvironment
+          - TagEnvironmentClass
+          - TagProject
+          - TagService
+          - TagPurpose
+          - Tag2wServiceTier
+          - Tagcpmbackup
+
+    ParameterLabels:
+      SubnetId:
+        default: "Which Subnet should this instance be deployed to?"
+
+Parameters:
+  InstType:
+    Type: "String"
+    Default: m5.large
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.large
+      - c4.large
+      - c4.xlarge
+      - m5.large
+      - m5.xlarge 
+    Description: Enter t2.micro, m1.small, or m1.large. Default is t2.micro.
+  KeyName:
+    Description: "Name of an existing EC2 KeyPair to enable SSH access to the instance"
+    Type: "AWS::EC2::KeyPair::KeyName"
+    ConstraintDescription: "Must be the name of an existing EC2 KeyPair."
+  InstanceProfile:
+    Type: "String"
+    Description: "Name of the IAM Instance Profile"
+  # EC2 Instance Network Configuration Parameters
+  HostName:
+    Type: "String"
+  SubnetId:
+    Description: "Subnet that the instance should be deployed to"
+    Type: "List<AWS::EC2::Subnet::Id>"
+    ConstraintDescription: "must be list of EC2 subnet ids"
+  SecurityGroups:
+    Description: "Security groups that can be used to access the EC2 instances"
+    Type: "List<AWS::EC2::SecurityGroup::GroupName>"
+    ConstraintDescription: "must be list of EC2 security group ids"
+  # EC2 Instance Tags
+  TagEnvironment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - misc
+    Description: Enter dev for Dev Environments or prod for Live production environments. Default is dev.
+  TagEnvironmentClass:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - misc
+      - wininf
+      - lnxinf
+    Description: Enter dev for Dev Environments or prod for Live production environments. Default is dev.
+  TagProject:
+    Type: "String"
+    Description: Enter the project name or id
+  TagService:
+    Type: String
+    Default: Infrastructure
+    AllowedValues:
+      - AlertLogic
+      - OpenVAS
+      - Sophos
+      - ActiveDirectory
+      - Infrastructure
+    Description: Enter the service which this resource supports. Default is Infrastructure.
+  TagPurpose:
+    Type: String
+    Default: DataScience
+    AllowedValues:
+      - DataScience
+      - Database
+      - DomainController
+      - DFS - Distributed File System
+      - Test
+      - Monitoring
+    Description: Enter the purpose for the deployment of this instance. Default DataScience.
+  Tag2wServiceTier:
+    Type: String
+    Default: OPERATE
+    AllowedValues:
+      - OPTIMIZE
+      - OPERATE
+      - MONITOR
+      - SELF MANAGE
+    Description: Enter the 2nd Watch Support Option. Choose OPTIMIZE for Windows Systems and Operate for Linux Systems. Default is OPERATE.
+  Tagcpmbackup:
+    Type: String
+    Default: 3
+    AllowedValues:
+      - 3
+      - 7
+      - 14
+    Description: Enter the desird snapshot retention period (in days). Default is 3 days.
+
+Mappings:
+  AMIRegionMap:
+    us-east-1:
+      "64": "ami-43a15f3e"
+    us-east-2:
+      "64": "ami-916f59f4"
+    us-west-1:
+      "64": "ami-925144f2"
+    us-west-2:
+      "64": "ami-4e79ed36"
+
+Resources:
+  UbuntuInstance:
+    Type: "AWS::EC2::Instance"
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          commands:
+            01_update_instance_atfirstboot:
+              command: !Sub |
+                #!/bin/bash -v
+                apt-get update -y
+                apt-get upgrade -y
+            02_install_ssm_agent:
+              command: !Sub |
+                #!/bin/bash -v
+                cd /tmp
+                wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
+                dpkg -i amazon-ssm-agent.deb
+                systemctl enable amazon-ssm-agent
+            03_join_instance_to_domain:
+              command: !Sub |
+                #!/bin/bash -v
+                apt-get -y install sssd realmd krb5-user samba-common
+                realm join -U svclinuxdomainjoin@example.com example.com --verbose
+                systemctl start sssd.service
+                sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config"
+                echo "%Domain\\ Admins@example.com ALL=(ALL:ALL) ALL " >> /etc/sudoers
+          files:
+            /etc/hostname:
+              mode: "000644"
+              owner: "root"
+              group: "root"
+              content: !Sub |
+                ${HostName}
+    Properties:
+      SubnetId: !Ref SubnetId
+      InstanceType: !Ref InstType
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: !FindInMap [AMIRegionMap, !Ref "AWS::Region", 32] # Ubuntu 16.04 HVM
+      SecurityGroups: !Ref SecurityGroups
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        -
+          DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 20
+        -
+          DeviceName: /dev/sdm
+          Ebs:
+            VolumeSize: 30
+      Tags:
+        - Key: Name
+          Value: !Ref HostName
+        - Key: Environment
+          Value: !Ref TagEnvironment
+        - Key: EnvironmentClass
+          Value: !Ref TagEnvironmentClass
+        - Key: Project
+          Value: !Ref TagProject
+        - Key: Service
+          Value: !Ref TagService
+        - Key:  Purpose
+          Value: !Ref TagPurpose
+        - Key: 2w:ServiceTier
+          Value: !Ref Tag2wServiceTier
+        - Key: PatchGroup
+          Value: !Ref TagEnvironmentClass
+        - Key: cpmbackup
+          Value: !Ref Tagcpmbackup
+      UserData:
+        Fn::Base64: !Sub |
+          /opt/aws/bin/cfn-init -s ${AWS::StackId} -r UbuntuInstance --region ${AWS::Region}
+
+
