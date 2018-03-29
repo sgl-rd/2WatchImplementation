@@ -1,0 +1,303 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: SCOR R and D VPC - Prod + Stage
+Mappings:
+  Networking:
+    VPC:
+      CIDR: 172.20.0.0/16
+    PublicSubnet1c:
+      CIDR: 172.20.10.0/27
+    PublicSubnet1d:
+      CIDR: 172.20.20.0/27
+    WorkspacesSubnet1c:
+      CIDR: 172.20.50.0/24
+    WorkspacesSubnet1d:
+      CIDR: 172.20.60.0/24
+    InfrastructureSubnet1d:
+      CIDR: 172.20.70.0/24
+    DataScienceSubnet1c:
+      CIDR: 172.20.100.0/24
+    DataScienceSubnet1d:
+      CIDR: 172.20.200.0/24
+Resources:
+  # VPCs
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      CidrBlock: !FindInMap 
+        - Networking
+        - VPC
+        - CIDR
+      Tags:
+        - Key: Name
+          Value: SCOR_R_and_D
+
+  # Gateways and MISC Network
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+  GatewayToInternet:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  NATGatewayOne:
+    DependsOn: GatewayToInternet
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt 
+        - ElasticIPOne
+        - AllocationId
+      SubnetId: !Ref PublicSubnet1c
+  ElasticIPOne:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+  NATGatewayTwo:
+    DependsOn: GatewayToInternet
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt 
+        - ElasticIPTwo
+        - AllocationId
+      SubnetId: !Ref PublicSubnet1d
+  ElasticIPTwo:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+
+  # Route Tables
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PrivateRouteTableOne:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+  PrivateRouteToInternetOne:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableOne
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGatewayOne
+  PrivateRouteTableTwo:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+  PrivateRouteToInternetTwo:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableTwo
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGatewayTwo
+
+  # Route Table Associations
+  PublicSubnet1cRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet1c
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnet1dRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet1d
+      RouteTableId: !Ref PublicRouteTable
+  DataScienceSubnet1cRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref DataScienceSubnet1c
+      RouteTableId: !Ref PrivateRouteTableOne
+  DataScienceSubnet1dRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref DataScienceSubnet1d
+      RouteTableId: !Ref PrivateRouteTableTwo
+  WorkspacesSubnet1cRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref WorkspacesSubnet1c
+      RouteTableId: !Ref PrivateRouteTableOne
+  WorkspacesSubnet1dRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref WorkspacesSubnet1d
+      RouteTableId: !Ref PrivateRouteTableTwo
+  InfrastructureSubnet1dRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref InfrastructureSubnet1d
+      RouteTableId: !Ref PrivateRouteTableOne
+
+  # Subnets
+  PublicSubnet1c:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: true
+      CidrBlock: !FindInMap
+        - Networking
+        - PublicSubnet1c
+        - CIDR
+      AvailabilityZone: !Select
+        - '2'
+        - !GetAZs
+          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: Public 1c
+  PublicSubnet1d:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: true
+      CidrBlock: !FindInMap
+        - Networking
+        - PublicSubnet1d
+        - CIDR
+      AvailabilityZone: !Select
+        - '3'
+        - !GetAZs
+          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: Public 1d
+  DataScienceSubnet1c:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap 
+        - Networking
+        - DataScienceSubnet1c
+        - CIDR
+      AvailabilityZone: !Select 
+        - '2'
+        - !GetAZs 
+          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: Data Science Subnet 1c
+  DataScienceSubnet1d:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap 
+        - Networking
+        - DataScienceSubnet1d
+        - CIDR
+      AvailabilityZone: !Select 
+        - '3'
+        - !GetAZs 
+          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: Data Science Subnet 1d
+  WorkspacesSubnet1c:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap 
+        - Networking
+        - WorkspacesSubnet1c
+        - CIDR
+      AvailabilityZone: !Select 
+        - '2'
+        - !GetAZs 
+          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: Workspaces 1c
+  WorkspacesSubnet1d:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap 
+        - Networking
+        - WorkspacesSubnet1d
+        - CIDR
+      AvailabilityZone: !Select 
+        - '3'
+        - !GetAZs 
+          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: Workspaces 1d
+  InfrastructureSubnet1d:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap 
+        - Networking
+        - InfrastructureSubnet1d
+        - CIDR
+      AvailabilityZone: !Select 
+        - '3'
+        - !GetAZs 
+          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: Infrastructure 1d
+
+  # Security Groups
+  AllowRDPandSSHSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "Allow rdp and ssh to hosts"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3389
+          ToPort: 3389
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+  # IAM
+  InstanceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: "instance-default-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns: "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
+      Policies:
+        -
+          PolicyName: "instance-default-role-policy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "*"
+                Resource: "*"
+  EC2InstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: "/"
+      Roles:
+        -
+          Ref: "InstanceRole"
