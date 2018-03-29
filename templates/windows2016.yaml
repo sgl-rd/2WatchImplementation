@@ -55,6 +55,7 @@ Parameters:
     ConstraintDescription: "Must be the name of an existing EC2 KeyPair."
   InstanceProfile:
     Type: "String"
+    Default: "instance-default-role"
     Description: "Name of the IAM Instance Profile. Please choose an Instance Profile which includes Managed Policy: arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
   # EC2 Instance Network Configuration Parameters
   HostName:
