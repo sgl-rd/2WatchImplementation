@@ -20,7 +20,7 @@ Metadata:
         Parameters:
           - HostName
           - SubnetId
-          - SecurityGroups
+          - InstanceSecurityGroup
       - Label:
           default: "EC2 Instance Tags"
         Parameters:
@@ -48,15 +48,15 @@ Parameters:
       - c4.xlarge
       - m5.large
       - m5.xlarge 
-    Description: Enter t2.micro, m1.small, or m1.large. Default is t2.micro.
+    Description: Choose the desired Instance Size.
   KeyName:
     Description: "Name of an existing EC2 KeyPair to enable Local Windows Admin access to the instance"
     Type: "AWS::EC2::KeyPair::KeyName"
     ConstraintDescription: "Must be the name of an existing EC2 KeyPair."
   InstanceProfile:
     Type: "String"
-    Default: "instance-default-role"
-    Description: "Name of the IAM Instance Profile. Please choose an Instance Profile which includes Managed Policy: arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
+    Default: "arn:aws:iam::078631709197:instance-profile/VPC-R-and-D-EC2InstanceProfile-Q1LYB75KMCDL"
+    Description: "ARN of the IAM Instance Profile. Please choose an Instance Profile which includes Managed Policy: arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
   # EC2 Instance Network Configuration Parameters
   HostName:
     Type: "String"
@@ -64,9 +64,9 @@ Parameters:
     Description: "Subnet that the instance should be deployed to"
     Type: "List<AWS::EC2::Subnet::Id>"
     ConstraintDescription: "must be list of EC2 subnet ids"
-  SecurityGroups:
+  InstanceSecurityGroup:
     Description: "Security groups that can be used to access the EC2 instances"
-    Type: "List<AWS::EC2::SecurityGroup::GroupName>"
+    Type: "AWS::EC2::SecurityGroup::Id"
     ConstraintDescription: "must be list of EC2 security group ids"
   # EC2 Instance Tags
   TagEnvironment:
@@ -178,7 +178,8 @@ Resources:
       InstanceType: !Ref InstType
       IamInstanceProfile: !Ref InstanceProfile
       ImageId: !FindInMap [AMIRegionMap, !Ref "AWS::Region", 64]
-      SecurityGroups: !Ref SecurityGroups
+      SecurityGroupIds:
+        - !Ref InstanceSecurityGroup
       KeyName: !Ref KeyName
       SsmAssociations:
         - DocumentName: !Ref myssmdocument

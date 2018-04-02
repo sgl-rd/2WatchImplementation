@@ -20,7 +20,7 @@ Metadata:
         Parameters:
           - HostName
           - SubnetId
-          - SecurityGroups
+          - InstanceSecurityGroup
       - Label:
           default: "EC2 Instance Tags"
         Parameters:
@@ -55,18 +55,18 @@ Parameters:
     ConstraintDescription: "Must be the name of an existing EC2 KeyPair."
   InstanceProfile:
     Type: "String"
-    Default: "instance-default-role"
-    Description: "Name of the IAM Instance Profile"
+    Default: "arn:aws:iam::078631709197:instance-profile/VPC-R-and-D-EC2InstanceProfile-Q1LYB75KMCDL"
+    Description: "The ARN of the IAM Instance Profile"
   # EC2 Instance Network Configuration Parameters
   HostName:
     Type: "String"
   SubnetId:
     Description: "Subnet that the instance should be deployed to"
-    Type: "List<AWS::EC2::Subnet::Id>"
+    Type: "AWS::EC2::Subnet::Id"
     ConstraintDescription: "must be list of EC2 subnet ids"
-  SecurityGroups:
+  InstanceSecurityGroup:
     Description: "Security groups that can be used to access the EC2 instances"
-    Type: "List<AWS::EC2::SecurityGroup::GroupName>"
+    Type: AWS::EC2::SecurityGroup::Id
     ConstraintDescription: "must be list of EC2 security group ids"
   # EC2 Instance Tags
   TagEnvironment:
@@ -178,7 +178,8 @@ Resources:
       InstanceType: !Ref InstType
       IamInstanceProfile: !Ref InstanceProfile
       ImageId: !FindInMap [AMIRegionMap, !Ref "AWS::Region", 64] # Ubuntu 16.04 HVM
-      SecurityGroups: !Ref SecurityGroups
+      SecurityGroupIds:
+        - !Ref InstanceSecurityGroup
       KeyName: !Ref KeyName
       BlockDeviceMappings:
         -
