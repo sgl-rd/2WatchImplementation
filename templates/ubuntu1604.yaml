@@ -55,8 +55,8 @@ Parameters:
     ConstraintDescription: "Must be the name of an existing EC2 KeyPair."
   InstanceProfile:
     Type: "String"
-    Default: "arn:aws:iam::078631709197:instance-profile/VPC-R-and-D-EC2InstanceProfile-Q1LYB75KMCDL"
-    Description: "The ARN of the IAM Instance Profile"
+    Default: "instance-default-role"
+    Description: "The name of the IAM Instance Profile role"
   # EC2 Instance Network Configuration Parameters
   HostName:
     Type: "String"
@@ -176,7 +176,7 @@ Resources:
     Properties:
       SubnetId: !Ref SubnetId
       InstanceType: !Ref InstType
-      IamInstanceProfile: !Ref InstanceProfile
+      IamInstanceProfile: 'instance-default-role'
       ImageId: !FindInMap [AMIRegionMap, !Ref "AWS::Region", 64] # Ubuntu 16.04 HVM
       SecurityGroupIds:
         - !Ref InstanceSecurityGroup
@@ -212,5 +212,6 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           /opt/aws/bin/cfn-init -s ${AWS::StackId} -r UbuntuInstance --region ${AWS::Region}
+          /opt/aws/bin/cfn-signal -s ${AWS::StackId} -r UbuntuInstance --region ${AWS::Region}
 
 

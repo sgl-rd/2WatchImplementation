@@ -55,7 +55,7 @@ Parameters:
     ConstraintDescription: "Must be the name of an existing EC2 KeyPair."
   InstanceProfile:
     Type: "String"
-    Default: "arn:aws:iam::078631709197:instance-profile/VPC-R-and-D-EC2InstanceProfile-Q1LYB75KMCDL"
+    Default: "instance-default-role"
     Description: "ARN of the IAM Instance Profile. Please choose an Instance Profile which includes Managed Policy: arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
   # EC2 Instance Network Configuration Parameters
   HostName:
@@ -176,7 +176,7 @@ Resources:
     Properties:
       SubnetId: !Ref SubnetId
       InstanceType: !Ref InstType
-      IamInstanceProfile: !Ref InstanceProfile
+      IamInstanceProfile: 'instance-default-role'
       ImageId: !FindInMap [AMIRegionMap, !Ref "AWS::Region", 64]
       SecurityGroupIds:
         - !Ref InstanceSecurityGroup
@@ -194,6 +194,10 @@ Resources:
               Value:
                 - 172.20.50.165
                 - 172.20.60.65
+      UserData:
+        Fn::Base64: !Sub |
+          /opt/aws/bin/cfn-init -s ${AWS::StackId} -r WindowsInstance --region ${AWS::Region}
+          /opt/aws/bin/cfn-signal -s ${AWS::StackId} -r WindowsInstance --region ${AWS::Region}
       Tags:
         - Key: Name
           Value: !Ref HostName
