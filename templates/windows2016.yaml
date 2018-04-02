@@ -62,7 +62,7 @@ Parameters:
     Type: "String"
   SubnetId:
     Description: "Subnet that the instance should be deployed to"
-    Type: "List<AWS::EC2::Subnet::Id>"
+    Type: "AWS::EC2::Subnet::Id"
     ConstraintDescription: "must be list of EC2 subnet ids"
   InstanceSecurityGroup:
     Description: "Security groups that can be used to access the EC2 instances"
