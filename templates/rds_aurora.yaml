@@ -33,27 +33,17 @@ Parameters:
     MaxLength: '41'
     AllowedPattern: '[a-zA-Z0-9]+'
     ConstraintDescription: must contain only alphanumeric characters.
-  DBAllocatedStorage:
-    Default: '5'
-    Description: The size of the database (Gb)
-    Type: Number
-    MinValue: '5'
-    MaxValue: '1024'
-    ConstraintDescription: must be between 5 and 1024Gb.
   DBInstanceClass:
     Description: The database instance type
     Type: String
     Default: db.t2.small
-    AllowedValues: [db.t1.micro, db.m1.small, db.m1.medium, db.m1.large, db.m1.xlarge,
-      db.m2.xlarge, db.m2.2xlarge, db.m2.4xlarge, db.m3.medium, db.m3.large, db.m3.xlarge,
-      db.m3.2xlarge, db.m4.large, db.m4.xlarge, db.m4.2xlarge, db.m4.4xlarge, db.m4.10xlarge,
-      db.r3.large, db.r3.xlarge, db.r3.2xlarge, db.r3.4xlarge, db.r3.8xlarge, db.m2.xlarge,
-      db.m2.2xlarge, db.m2.4xlarge, db.cr1.8xlarge, db.t2.micro, db.t2.small, db.t2.medium,
-      db.t2.large]
+    AllowedValues: [db.r4.16xlarge,db.r4.8xlarge,db.r4.4xlarge,db.r4.2xlarge,db.r4.xlarge,db.r4.large
+      db.r3.8xlarge,db.r3.4xlarge,db.r3.2xlarge,db.r3.xlarge,db.r3.large,db.m2.4xlarge,db.m2.2xlarge,db.m2.xlarge
+      db.t2.medium,db.t2.small
+      ]
     ConstraintDescription: must select a valid database instance type.
   EC2SecurityGroup:
-    Description: The EC2 security group that contains instances that need access to
-      the database
+    Description: The EC2 security group that contains instances that need access to the database
     Default: default
     Type: "AWS::EC2::SecurityGroup::Id"
     ConstraintDescription: must be a valid security group name.
@@ -84,10 +74,10 @@ Resources:
       VpcId: vpc-0739dbc722f780443
       GroupDescription: Open database for access
       SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: '3306'
-        ToPort: '3306'
-        CidrIp: '0.0.0.0/0'
+      #- IpProtocol: tcp
+      #  FromPort: '3306'
+      #  ToPort: '3306'
+      #  CidrIp: '0.0.0.0/0'
       - IpProtocol: tcp
         FromPort: '3306'
         ToPort: '3306'
@@ -102,7 +92,6 @@ Resources:
     Properties:
       DBName:
         Ref: 'DBName'
-      AllocatedStorage: !Ref 'DBAllocatedStorage'
       DBInstanceClass: !Ref 'DBInstanceClass'
       Engine: aurora
       MasterUsername: !Ref 'DBUser'

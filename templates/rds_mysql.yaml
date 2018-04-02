@@ -84,10 +84,10 @@ Resources:
       VpcId: vpc-0739dbc722f780443
       GroupDescription: Open database for access
       SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: '3306'
-        ToPort: '3306'
-        CidrIp: '0.0.0.0/0'
+      #- IpProtocol: tcp
+      #  FromPort: '3306'
+      #  ToPort: '3306'
+      #  CidrIp: '0.0.0.0/0'
       - IpProtocol: tcp
         FromPort: '3306'
         ToPort: '3306'
