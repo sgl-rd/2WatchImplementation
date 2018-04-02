@@ -18,6 +18,10 @@ Mappings:
       CIDR: 172.20.100.0/24
     DataScienceSubnet1d:
       CIDR: 172.20.200.0/24
+    DBSubnet1c:
+      CIDR: 172.20.30.0/24
+    DBSubnet1d:
+      CIDR: 172.20.40.0/24
 Resources:
   # VPCs
   VPC:
@@ -32,10 +36,7 @@ Resources:
       Tags:
         - Key: Name
           Value: SCOR_R_and_D
-        - Key: Project
-          Value: ""
-        - Key: 2w:ServiceTier
-          Value: ""
+
   # Gateways and MISC Network
   InternetGateway:
     Type: 'AWS::EC2::InternetGateway'
@@ -102,6 +103,16 @@ Resources:
       NatGatewayId: !Ref NATGatewayTwo
 
   # Route Table Associations
+  DBSubnet1cRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref DBSubnet1c
+      RouteTableId: !Ref PrivateRouteTableOne
+  DBubnet1dRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref DBSubnet1d
+      RouteTableId: !Ref PrivateRouteTableTwo
   PublicSubnet1cRouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
@@ -136,9 +147,41 @@ Resources:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref InfrastructureSubnet1d
-      RouteTableId: !Ref PrivateRouteTableTwo
+      RouteTableId: !Ref PrivateRouteTableOne
 
   # Subnets
+  DBSubnet1c:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: true
+      CidrBlock: !FindInMap
+        - Networking
+        - DBSubnet1c
+        - CIDR
+      AvailabilityZone: !Select
+        - '2'
+        - !GetAZs
+          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: Database 1c
+  DBSubnet1d:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: true
+      CidrBlock: !FindInMap
+        - Networking
+        - DBSubnet1d
+        - CIDR
+      AvailabilityZone: !Select
+        - '3'
+        - !GetAZs
+          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: Database 1d
   PublicSubnet1c:
     Type: 'AWS::EC2::Subnet'
     Properties:
@@ -286,7 +329,8 @@ Resources:
             Action:
               - "sts:AssumeRole"
       Path: "/"
-      ManagedPolicyArns: "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
       Policies:
         -
           PolicyName: "instance-default-role-policy"
