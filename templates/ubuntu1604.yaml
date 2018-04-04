@@ -39,7 +39,7 @@ Metadata:
 Parameters:
   InstType:
     Type: "String"
-    Default: m5.large
+    Default: t2.micro
     AllowedValues:
       - t2.micro
       - t2.small
@@ -55,7 +55,7 @@ Parameters:
     ConstraintDescription: "Must be the name of an existing EC2 KeyPair."
   InstanceProfile:
     Type: "String"
-    Default: "instance-default-role"
+    Default: "VPC-R-and-D-EC2InstanceProfile-Q1LYB75KMCDL"
     Description: "The name of the IAM Instance Profile role"
   # EC2 Instance Network Configuration Parameters
   HostName:
@@ -146,26 +146,6 @@ Resources:
     Metadata:
       AWS::CloudFormation::Init:
         config:
-          commands:
-            01_update_instance_atfirstboot:
-              command: !Sub |
-                #!/bin/bash -v
-                apt-get update -y
-                apt-get upgrade -y
-            02_install_ssm_agent:
-              command: !Sub |
-                #!/bin/bash -v
-                cd /tmp
-                wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
-                dpkg -i amazon-ssm-agent.deb
-                systemctl enable amazon-ssm-agent
-            03_join_instance_to_domain:
-              command: !Sub |
-                #!/bin/bash -v
-                apt-get -y install sssd realmd krb5-user samba-common
-                realm join -U svclinuxdomainjoin@us.scorrd.local us.scorrd.local --verbose
-                systemctl start sssd.service
-                sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config"
           files:
             /etc/hostname:
               mode: "000644"
@@ -176,8 +156,8 @@ Resources:
     Properties:
       SubnetId: !Ref SubnetId
       InstanceType: !Ref InstType
-      IamInstanceProfile: 'instance-default-role'
-      ImageId: !FindInMap [AMIRegionMap, !Ref "AWS::Region", 64] # Ubuntu 16.04 HVM
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: !FindInMap [AMIRegionMap, !Ref"AWS::Region", 64] # Ubuntu 16.04 HVM
       SecurityGroupIds:
         - !Ref InstanceSecurityGroup
       KeyName: !Ref KeyName
@@ -211,7 +191,15 @@ Resources:
           Value: !Ref Tagcpmbackup
       UserData:
         Fn::Base64: !Sub |
+          !/bin/bash -v
           /opt/aws/bin/cfn-init -s ${AWS::StackId} -r UbuntuInstance --region ${AWS::Region}
-          /opt/aws/bin/cfn-signal -s ${AWS::StackId} -r UbuntuInstance --region ${AWS::Region}
-
-
+          apt-get update -y
+          apt-get upgrade -y
+          cd /tmp
+          wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
+          dpkg -i amazon-ssm-agent.deb
+          systemctl enable amazon-ssm-agent
+          apt-get -y install sssd realmd krb5-user samba-common
+          realm join -U svclinuxdomainjoin@us.scorrd.local us.scorrd.local --verbose
+          systemctl start sssd.service
+          sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config"

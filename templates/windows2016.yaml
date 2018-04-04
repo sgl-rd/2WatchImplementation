@@ -39,7 +39,7 @@ Metadata:
 Parameters:
   InstType:
     Type: "String"
-    Default: m5.large
+    Default: t2.large
     AllowedValues:
       - t2.micro
       - t2.small
@@ -55,7 +55,7 @@ Parameters:
     ConstraintDescription: "Must be the name of an existing EC2 KeyPair."
   InstanceProfile:
     Type: "String"
-    Default: "instance-default-role"
+    Default: "VPC-R-and-D-EC2InstanceProfile-Q1LYB75KMCDL"
     Description: "ARN of the IAM Instance Profile. Please choose an Instance Profile which includes Managed Policy: arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
   # EC2 Instance Network Configuration Parameters
   HostName:
@@ -176,7 +176,7 @@ Resources:
     Properties:
       SubnetId: !Ref SubnetId
       InstanceType: !Ref InstType
-      IamInstanceProfile: 'instance-default-role'
+      IamInstanceProfile: !Ref InstanceProfile
       ImageId: !FindInMap [AMIRegionMap, !Ref "AWS::Region", 64]
       SecurityGroupIds:
         - !Ref InstanceSecurityGroup
