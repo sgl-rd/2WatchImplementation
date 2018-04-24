@@ -228,7 +228,7 @@ Resources:
       MapPublicIpOnLaunch: true
       CidrBlock: !FindInMap
         - Networking
-        - DBSubnet1d
+        - DBSubnet1e
         - CIDR
       AvailabilityZone: !Select
         - '2'
