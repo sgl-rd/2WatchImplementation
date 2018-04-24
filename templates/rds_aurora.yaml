@@ -1,128 +1,264 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Metadata:
-  License: Apache-2.0
-Description: 'This template creates a Mysql RDS Instance with an optional read replica'
+# rds_aurora.yaml
+# Author: Brent Clements bclements@2ndwatch.com
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Aurora Mysql Template that creates a 2 instance cluster
+
 Parameters:
-  DBName:
-    Default: MyDatabase
-    Description: The database name
+
+  DatabaseUser:
+    Default: scordbadmin
     Type: String
-    MinLength: '1'
-    MaxLength: '64'
-    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
-    ConstraintDescription: must begin with a letter and contain only alphanumeric
-      characters.
-  DBUser:
-    NoEcho: 'true'
-    Description: The database admin account username
+    Description: Database admin account name
+    MinLength: 5
+    MaxLength: 16
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: Name must begin with a letter and contain only alphanumeric characters
+
+  DatabasePassword:
+    NoEcho: true
     Type: String
-    MinLength: '1'
-    MaxLength: '16'
-    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
-    ConstraintDescription: must begin with a letter and contain only alphanumeric
-      characters.
-  DBSubnetGroupName:
-    Description: "Subnet Group that the instance should be deployed to"
+    Description: Database admin account password
+    MinLength: 6
+    MaxLength: 41
+    AllowedPattern: "[a-zA-Z0-9]*"
+    ConstraintDescription: Password must contain only alphanumeric characters
+
+  DatabaseName:
+    Default: ScorRDDB
     Type: String
-    Default: "default"
-  DBPassword:
-    NoEcho: 'true'
-    Description: The database admin account password
+    Description: Database name
+    MinLength: 1
+    MaxLength: 30
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: Name must begin with a letter and contain only alphanumeric characters
+
+  DatabaseEngine:
+    Default: aurora
     Type: String
-    MinLength: '1'
-    MaxLength: '41'
-    AllowedPattern: '[a-zA-Z0-9]+'
-    ConstraintDescription: must contain only alphanumeric characters.
-  DBInstanceClass:
-    Description: The database instance type
-    Type: String
+    Description: Database engines - Aurora MySQL or Aurora PostgreSQL
+    ConstraintDescription: Choose an engine from the drop down
+    AllowedValues:
+      - aurora
+
+  DatabaseInstanceClass:
     Default: db.t2.small
-    AllowedValues: [db.r4.16xlarge,db.r4.8xlarge,db.r4.4xlarge,db.r4.2xlarge,db.r4.xlarge,db.r4.large
-      db.r3.8xlarge,db.r3.4xlarge,db.r3.2xlarge,db.r3.xlarge,db.r3.large,db.m2.4xlarge,db.m2.2xlarge,db.m2.xlarge
-      db.t2.medium,db.t2.small
-      ]
-    ConstraintDescription: must select a valid database instance type.
+    Type: String
+    Description: "Database instance class, e.g. db.t2.micro (free tier) - Engine support: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html"
+    ConstraintDescription: DB instance class not supported
+    AllowedValues:
+      - db.t2.small
+      - db.t2.medium
+      - db.t2.xlarge
+      - db.r4.large
+      - db.r4.xlarge
+      - db.r4.2xlarge
+      - db.r4.4xlarge
+      - db.r4.8xlarge
+      - db.r4.16xlarge
+
   EC2SecurityGroup:
     Description: The EC2 security group that contains instances that need access to the database
     Default: default
     Type: "AWS::EC2::SecurityGroup::Id"
-    ConstraintDescription: must be a valid security group name.
-  ReadReplicaTrueFalse:
+    ConstraintDescription: must be a valid security group name that contains the instances you'd like to access the database from.
+    
+  TagEnvironment:
     Type: String
-    Default: 'true'
-    AllowedValues: ['true','false']
-    ConstraintDescription: must be true or false
-  MultiAZ:
-    Description: Multi-AZ master database
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - misc
+    Description: Enter dev for Dev Environments or prod for Live production environments. Default is dev.
+  TagEnvironmentClass:
     Type: String
-    Default: 'false'
-    AllowedValues: ['true', 'false']
-    ConstraintDescription: must be true or false.
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - misc
+      - wininf
+      - lnxinf
+    Description: Enter dev for Dev Environments or prod for Live production environments. Default is dev.
+  TagProject:
+    Type: "String"
+    Description: Enter the project name or id
+  TagService:
+    Type: String
+    Default: Infrastructure
+    AllowedValues:
+      - AlertLogic
+      - OpenVAS
+      - Sophos
+      - ActiveDirectory
+      - Infrastructure
+    Description: Enter the service which this resource supports. Default is Infrastructure.
+  TagPurpose:
+    Type: String
+    Default: DataScience
+    AllowedValues:
+      - DataScience
+      - Database
+      - DomainController
+      - DFS - Distributed File System
+      - Test
+      - Monitoring
+    Description: Enter the purpose for the deployment of this instance. Default DataScience.
+  Tag2wServiceTier:
+    Type: String
+    Default: OPERATE
+    AllowedValues:
+      - OPTIMIZE
+      - OPERATE
+      - MONITOR
+      - SELF MANAGE
+    Description: Enter the 2nd Watch Support Option. Choose OPTIMIZE for Windows Systems and Operate for Linux Systems. Default is OPERATE.
+  Tagcpmbackup:
+    Type: String
+    Default: 3
+    AllowedValues:
+      - 3
+      - 7
+      - 14
+    Description: Enter the desird snapshot retention period (in days). Default is 3 days.
+
 Conditions:
-  Create-Read-Replica: !Equals [!Ref ReadReplicaTrueFalse, 'true']
+    IsAuroraMySQL: !Equals [ !Ref DatabaseEngine, aurora ]
+
 Resources:
-  myDBSubnetGroup:
-    Type: "AWS::RDS::DBSubnetGroup"
-    Properties:
-      DBSubnetGroupDescription: "description"
-      SubnetIds:
-        - subnet-0a04e2307add496c1
-        - subnet-0c7be17bbc6a744e4
+
   DBEC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: vpc-0739dbc722f780443
       GroupDescription: Open database for access
       SecurityGroupIngress:
-      #- IpProtocol: tcp
-      #  FromPort: '3306'
-      #  ToPort: '3306'
-      #  CidrIp: '0.0.0.0/0'
       - IpProtocol: tcp
         FromPort: '3306'
         ToPort: '3306'
         SourceSecurityGroupId:
           Ref: EC2SecurityGroup
 
-  MasterDB:
-    Type: AWS::RDS::DBInstance
-    DependsOn:
-      - DBEC2SecurityGroup
-      - myDBSubnetGroup
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
     Properties:
-      DBName:
-        Ref: 'DBName'
-      DBInstanceClass: !Ref 'DBInstanceClass'
-      Engine: aurora
-      MasterUsername: !Ref 'DBUser'
-      MasterUserPassword: !Ref 'DBPassword'
-      MultiAZ: !Ref 'MultiAZ'
+      DBSubnetGroupDescription: Database subnet group
+      SubnetIds:
+      - Fn::ImportValue: VPC-R-and-D-DBSubnet1c
+      - Fn::ImportValue: VPC-R-and-D-DBSubnet1d
+      - Fn::ImportValue: VPC-R-and-D-DBSubnet1e
       Tags:
       - Key: Name
-        Value: Master Database
-      DBSubnetGroupName:
-        Ref: myDBSubnetGroup
-      VPCSecurityGroups:
+        Value: !Ref AWS::StackName
+
+  AuroraCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: !Ref DatabaseEngine
+      MasterUsername: !Ref DatabaseUser
+      MasterUserPassword: !Ref DatabasePassword
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      StorageEncrypted: False
+      DatabaseName: !Ref DatabaseName
+      DBClusterParameterGroupName: !If [ IsAuroraMySQL,  default.aurora5.6, default.aurora-postgresql9.6 ]
+      Port: !If [ IsAuroraMySQL,  3306, 5432 ]
+      VpcSecurityGroupIds:
         - Ref: DBEC2SecurityGroup
-    DeletionPolicy: Snapshot
-  ReplicaDB:
+    DependsOn: 
+      - DatabaseSubnetGroup
+      - DBEC2SecurityGroup
+
+  AuroraInstance0:
     Type: AWS::RDS::DBInstance
-    DependsOn:
-      - MasterDB
-    Condition: Create-Read-Replica
     Properties:
-      SourceDBInstanceIdentifier: !Ref 'MasterDB'
-      DBInstanceClass: !Ref 'DBInstanceClass'
+      Engine: !Ref DatabaseEngine
+      DBClusterIdentifier: !Ref AuroraCluster
+      DBInstanceClass: !Ref DatabaseInstanceClass
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      StorageEncrypted: False
+      DBParameterGroupName: !If [ IsAuroraMySQL,  default.aurora5.6, default.aurora-postgresql9.6 ]
+      CopyTagsToSnapshot: true
       Tags:
-      - Key: Name
-        Value: Read Replica Database
+        - Key: Name
+          Value: !Ref AWS::StackName
+        - Key: Environment
+          Value: !Ref TagEnvironment
+        - Key: EnvironmentClass
+          Value: !Ref TagEnvironmentClass
+        - Key: Project
+          Value: !Ref TagProject
+        - Key: Service
+          Value: !Ref TagService
+        - Key:  Purpose
+          Value: !Ref TagPurpose
+        - Key: 2w:ServiceTier
+          Value: !Ref Tag2wServiceTier
+        - Key: PatchGroup
+          Value: !Ref TagEnvironmentClass
+        - Key: cpmbackup
+          Value: !Ref Tagcpmbackup
+    DependsOn: AuroraCluster
+
+  AuroraInstance1:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: !Ref DatabaseEngine
+      DBClusterIdentifier: !Ref AuroraCluster
+      DBInstanceClass: !Ref DatabaseInstanceClass
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      StorageEncrypted: False
+      DBParameterGroupName: !If [ IsAuroraMySQL,  default.aurora5.6, default.aurora-postgresql9.6 ]
+      CopyTagsToSnapshot: true
+      Tags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+        - Key: Environment
+          Value: !Ref TagEnvironment
+        - Key: EnvironmentClass
+          Value: !Ref TagEnvironmentClass
+        - Key: Project
+          Value: !Ref TagProject
+        - Key: Service
+          Value: !Ref TagService
+        - Key:  Purpose
+          Value: !Ref TagPurpose
+        - Key: 2w:ServiceTier
+          Value: !Ref Tag2wServiceTier
+        - Key: PatchGroup
+          Value: !Ref TagEnvironmentClass
+        - Key: cpmbackup
+          Value: !Ref Tagcpmbackup
+    DependsOn: AuroraCluster
+
 Outputs:
-  MasterJDBCConnectionString:
-    Description: JDBC connection string for the master database
-    Value: !Join ['', ['jdbc:mysql://', !GetAtt [MasterDB, Endpoint.Address], ':',
-        !GetAtt [MasterDB, Endpoint.Port], /, !Ref 'DBName']]
-  ReplicaJDBCConnectionString:
-    Condition: Create-Read-Replica
-    Description: JDBC connection string for the replica database
-    Value: !Join ['', ['jdbc:mysql://', !GetAtt [ReplicaDB, Endpoint.Address], ':',
-        !GetAtt [ReplicaDB, Endpoint.Port], /, !Ref 'DBName']]
+
+  Name:
+    Description: Aurora Stack Name
+    Value: !Ref AWS::StackName
+    Export:
+      Name: !Sub ${AWS::StackName}-Name
+
+  AuroraClusterId:
+    Description: Aurora Cluster ID
+    Value: !Ref AuroraCluster
+    Export:
+      Name: !Sub ${AWS::StackName}-AuroraClusterID
+
+  AuroraDbURL:
+    Description: Aurora Database URL
+    Value: !GetAtt AuroraCluster.Endpoint.Address
+    Export:
+      Name: !Sub ${AWS::StackName}-DatabaseURL
+
+  AuroraReadDbURL:
+    Description: Aurora Database Read URL
+    Value: !GetAtt AuroraCluster.ReadEndpoint.Address
+    Export:
+      Name: !Sub ${AWS::StackName}-DatabaseReadURL
+
+  DbUser:
+    Description: RDS Database admin account user
+    Value: !Ref DatabaseUser
+    Export:
+      Name: !Sub ${AWS::StackName}-DatabaseUser

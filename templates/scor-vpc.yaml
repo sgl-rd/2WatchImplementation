@@ -1,3 +1,6 @@
+# Todo:
+#  1. Add bucket policies to buckets. Need to determine how we want to do this. Bucket policy using a role?
+
 AWSTemplateFormatVersion: 2010-09-09
 Description: SCOR R and D VPC - Prod + Stage
 Mappings:
@@ -22,6 +25,8 @@ Mappings:
       CIDR: 172.20.30.0/24
     DBSubnet1d:
       CIDR: 172.20.40.0/24
+    DBSubnet1e:
+      CIDR: 172.20.45.0/24
 Resources:
   # VPCs
   VPC:
@@ -101,6 +106,16 @@ Resources:
       RouteTableId: !Ref PrivateRouteTableTwo
       DestinationCidrBlock: 0.0.0.0/0
       NatGatewayId: !Ref NATGatewayTwo
+  PrivateRouteTableThree:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+  PrivateRouteToInternetThree:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableThree
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGatewayTwo
 
   # Route Table Associations
   DBSubnet1cRouteTableAssociation:
@@ -113,6 +128,11 @@ Resources:
     Properties:
       SubnetId: !Ref DBSubnet1d
       RouteTableId: !Ref PrivateRouteTableTwo
+  DBubnet1eRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref DBSubnet1e
+      RouteTableId: !Ref PrivateRouteTableThree
   PublicSubnet1cRouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
@@ -182,6 +202,22 @@ Resources:
       Tags:
         - Key: Name
           Value: Database 1d
+  DBSubnet1e:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: true
+      CidrBlock: !FindInMap
+        - Networking
+        - DBSubnet1d
+        - CIDR
+      AvailabilityZone: !Select
+        - '2'
+        - !GetAZs
+          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: Database 1e
   PublicSubnet1c:
     Type: 'AWS::EC2::Subnet'
     Properties:
@@ -348,3 +384,20 @@ Resources:
       Roles:
         -
           Ref: "InstanceRole"
+  # S3 Buckets
+  landingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: 'scor-rd-landing'
+  curatedBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: 'scor-rd-curated'
+  appsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: 'scor-rd-apps'
+  workingUserDataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: 'scor-rd-workinguserdata'

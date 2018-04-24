@@ -1,0 +1,243 @@
+# rds_aurora.yaml
+# Author: Brent Clements bclements@2ndwatch.com
+# Todo:
+# 1. This needs further design on what the customer needs at a minimum. The
+#    template I've provided is just a start. There are a ton of placeholders for
+#    information we need the customer to fill in.
+
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Cloudformation Template to spin up EMR clusters V3 (Version 5 of EMR
+  only)
+Parameters:
+  clusterName:
+    Description: Name of the cluster
+    Type: String
+  taskInstanceCount:
+    Description: Number of task instances
+    Type: String
+    AllowedValues:
+    - '1'
+    - '2'
+    - '3'
+    - '4'
+    - '5'
+    - '6'
+    - '7'
+    ConstraintDescription: Up to 7 nodes only
+  emrVersion:
+    Description: Version of EMR
+    Type: String
+    AllowedPattern: emr-5.[0-9].[0-9]
+    ConstraintDescription: 'Must be EMR Version 4 (i.e: emr-5.3.0)'
+  masterInstanceType:
+    Description: Instance type of Master Node
+    Type: String
+  coreInstanceType:
+    Description: Instance type of Core Node
+    Type: String
+  taskInstanceType:
+    Description: Instance type of Task Node
+    Type: String
+  environmentType:
+    Description: What environment do you want the cluster to be in
+    Type: String
+  s3BucketBasePath:
+    Description: Bucket to log EMR actions to
+    Type: String
+  taskBidPrice:
+    Description: Bid price for Task nodes
+    Type: String
+  terminationProtected:
+    Description: Is the cluster to have termination protection enabled
+    Type: String
+    AllowedValues:
+    - 'true'
+    - 'false'
+    ConstraintDescription: Boolean
+  awsRegion:
+    Description: awsRegion
+    Default: eu-west-1
+    AllowedValues:
+    - eu-west-1
+    - eu-central-1
+    Type: String
+  TagEnvironment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - misc
+    Description: Enter dev for Dev Environments or prod for Live production environments. Default is dev.
+  TagEnvironmentClass:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+      - misc
+      - wininf
+      - lnxinf
+    Description: Enter dev for Dev Environments or prod for Live production environments. Default is dev.
+  TagProject:
+    Type: "String"
+    Description: Enter the project name or id
+  TagService:
+    Type: String
+    Default: Infrastructure
+    AllowedValues:
+      - AlertLogic
+      - OpenVAS
+      - Sophos
+      - ActiveDirectory
+      - Infrastructure
+    Description: Enter the service which this resource supports. Default is Infrastructure.
+  TagPurpose:
+    Type: String
+    Default: DataScience
+    AllowedValues:
+      - DataScience
+      - Database
+      - DomainController
+      - DFS - Distributed File System
+      - Test
+      - Monitoring
+    Description: Enter the purpose for the deployment of this instance. Default DataScience.
+  Tag2wServiceTier:
+    Type: String
+    Default: OPERATE
+    AllowedValues:
+      - OPTIMIZE
+      - OPERATE
+      - MONITOR
+      - SELF MANAGE
+    Description: Enter the 2nd Watch Support Option. Choose OPTIMIZE for Windows Systems and Operate for Linux Systems. Default is OPERATE.
+  Tagcpmbackup:
+    Type: String
+    Default: 3
+    AllowedValues:
+      - 3
+      - 7
+      - 14
+    Description: Enter the desird snapshot retention period (in days). Default is 3 days.
+
+Conditions:
+  isLive:
+    Fn::Equals:
+    - Ref: environmentType
+    - live
+Resources:
+  EMRClusterV5:
+    Type: AWS::EMR::Cluster
+    Properties:
+      Instances:
+        MasterInstanceGroup:
+          InstanceCount: 1
+          InstanceType:
+            Ref: masterInstanceType
+          Market: ON_DEMAND
+          Name: Master instance group - 1
+        CoreInstanceGroup:
+          InstanceCount: 1
+          InstanceType:
+            Ref: coreInstanceType
+          Market: ON_DEMAND
+          Name: Core instance group - 2
+        TerminationProtected:
+          Ref: terminationProtected
+        Ec2SubnetId: ENTER SUBNET HERE
+        Ec2KeyName: ENTER NAME OF SSH KEY HERE
+        EmrManagedMasterSecurityGroup: ENTER SECURITY GROUP HERE
+        EmrManagedSlaveSecurityGroup: ENTER SECURITY GROUP HERE
+        ServiceAccessSecurityGroup: ENTER SECURITY GROUP HERE
+      BootstrapActions:
+      - Name: NAME OF BOOTSTRAP
+        ScriptBootstrapAction:
+          Path: S3 LOCATION OF SHELL SCRIPT
+      Configurations:
+      - Classification: hadoop-log4j
+        ConfigurationProperties:
+          hadoop.log.maxfilesize: 256MB
+          hadoop.log.maxbackupindex: '3'
+          hadoop.security.log.maxfilesize: 256MB
+          hadoop.security.log.maxbackupindex: '3'
+          hdfs.audit.log.maxfilesize: 256MB
+          hdfs.audit.log.maxbackupindex: '3'
+          mapred.audit.log.maxfilesize: 256MB
+          mapred.audit.log.maxbackupindex: '3'
+          hadoop.mapreduce.jobsummary.log.maxfilesize: 256MB
+          hadoop.mapreduce.jobsummary.log.maxbackupindex: '3'
+      - Classification: hbase-log4j
+        ConfigurationProperties:
+          hbase.log.maxbackupindex: '3'
+          hbase.log.maxfilesize: 10MB
+          hbase.security.log.maxbackupindex: '3'
+          hbase.security.log.maxfilesize: 10MB
+      - Classification: yarn-site
+        ConfigurationProperties:
+          yarn.log-aggregation.retain-seconds: '43200'
+      Applications:
+      - Name: Hadoop
+      - Name: Hive
+      - Name: Pig
+      - Name: Hue
+      - Name: HCatalog
+      - Name: Sqoop
+      - Name: Ganglia
+      - Name: Spark
+      - Name: Oozie
+      - Name: Tez
+      Name:
+        Ref: clusterName
+      JobFlowRole: ENTER EMR ROLE HERE
+      ServiceRole: ENTER EMR ROLE HERE
+      ReleaseLabel:
+        Ref: emrVersion
+      LogUri:
+        Fn::Join:
+        - ''
+        - - s3n://
+          - Ref: s3BucketBasePath
+          - "/logs/"
+      VisibleToAllUsers: true
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Join:
+          - ''
+          - - emr-instance-
+            - Ref: AWS::StackName
+            - ''
+        - Key: Environment
+          Value: !Ref TagEnvironment
+        - Key: EnvironmentClass
+          Value: !Ref TagEnvironmentClass
+        - Key: Project
+          Value: !Ref TagProject
+        - Key: Service
+          Value: !Ref TagService
+        - Key:  Purpose
+          Value: !Ref TagPurpose
+        - Key: 2w:ServiceTier
+          Value: !Ref Tag2wServiceTier
+        - Key: PatchGroup
+          Value: !Ref TagEnvironmentClass
+        - Key: cpmbackup
+          Value: !Ref Tagcpmbackup
+
+  EMRTaskNodes:
+    Type: AWS::EMR::InstanceGroupConfig
+    Properties:
+      InstanceCount:
+        Ref: taskInstanceCount
+      InstanceType:
+        Ref: taskInstanceType
+      BidPrice:
+        Ref: taskBidPrice
+      Market: SPOT
+      InstanceRole: TASK
+      Name: Task instance group - 3
+      JobFlowId:
+        Ref: EMRClusterV5
+
