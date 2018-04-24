@@ -11,6 +11,8 @@ Mappings:
       CIDR: 172.20.10.0/27
     PublicSubnet1d:
       CIDR: 172.20.20.0/27
+    PublicSubnet1e:
+      CIDR: 172.20.25.0/27
     WorkspacesSubnet1c:
       CIDR: 172.20.50.0/24
     WorkspacesSubnet1d:
@@ -74,6 +76,18 @@ Resources:
     Type: 'AWS::EC2::EIP'
     Properties:
       Domain: vpc
+  NATGatewayThree:
+    DependsOn: GatewayToInternet
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt 
+        - ElasticIPThree
+        - AllocationId
+      SubnetId: !Ref PublicSubnet1e
+  ElasticIPThree:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
 
   # Route Tables
   PublicRouteTable:
@@ -115,7 +129,7 @@ Resources:
     Properties:
       RouteTableId: !Ref PrivateRouteTableThree
       DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref NATGatewayTwo
+      NatGatewayId: !Ref NATGatewayThree
 
   # Route Table Associations
   DBSubnet1cRouteTableAssociation:
@@ -142,6 +156,11 @@ Resources:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
     Properties:
       SubnetId: !Ref PublicSubnet1d
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnet1eRouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet1e
       RouteTableId: !Ref PublicRouteTable
   DataScienceSubnet1cRouteTableAssociation:
     Type: 'AWS::EC2::SubnetRouteTableAssociation'
@@ -250,6 +269,22 @@ Resources:
       Tags:
         - Key: Name
           Value: Public 1d
+  PublicSubnet1e:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      MapPublicIpOnLaunch: true
+      CidrBlock: !FindInMap
+        - Networking
+        - PublicSubnet1e
+        - CIDR
+      AvailabilityZone: !Select
+        - '3'
+        - !GetAZs
+          Ref: 'AWS::Region'
+      Tags:
+        - Key: Name
+          Value: Public 1e
   DataScienceSubnet1c:
     Type: 'AWS::EC2::Subnet'
     Properties:
