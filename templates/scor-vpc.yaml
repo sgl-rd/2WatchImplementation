@@ -423,16 +423,16 @@ Resources:
   landingBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: 'scor-rd-landing'
+      BucketName: 'sgl-rd-landing'
   curatedBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: 'scor-rd-curated'
+      BucketName: 'sgl-rd-curated'
   appsBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: 'scor-rd-apps'
+      BucketName: 'sgl-rd-apps'
   workingUserDataBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: 'scor-rd-workinguserdata'
+      BucketName: 'sgl-rd-workinguserdata'
