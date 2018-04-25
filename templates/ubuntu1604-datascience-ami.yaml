@@ -14,7 +14,6 @@ Metadata:
         Parameters:
           - InstType
           - KeyName
-          - InstanceProfile
       - Label:
           default: "EC2 Instance Network Configuration"
         Parameters:
@@ -53,11 +52,6 @@ Parameters:
     Description: "Name of an existing EC2 KeyPair to enable SSH access to the instance"
     Type: "AWS::EC2::KeyPair::KeyName"
     ConstraintDescription: "Must be the name of an existing EC2 KeyPair."
-  InstanceProfile:
-    Type: "String"
-    Default: "VPC-R-and-D-EC2InstanceProfile-Q1LYB75KMCDL"
-    Description: "The name of the IAM Instance Profile role"
-  # EC2 Instance Network Configuration Parameters
   HostName:
     Type: "String"
   SubnetId:
@@ -132,7 +126,13 @@ Parameters:
 Mappings:
   AMIRegionMap:
     us-east-1:
-      "64": "ami-0c0907d581f42b265"
+      "64": "ami-43a15f3e"
+    us-east-2:
+      "64": "ami-916f59f4"
+    us-west-1:
+      "64": "ami-925144f2"
+    us-west-2:
+      "64": "ami-4e79ed36"
 
 Resources:
   UbuntuInstance:
@@ -150,7 +150,6 @@ Resources:
     Properties:
       SubnetId: !Ref SubnetId
       InstanceType: !Ref InstType
-      IamInstanceProfile: !Ref InstanceProfile
       ImageId: !FindInMap [AMIRegionMap, !Ref "AWS::Region", 64] # Ubuntu 16.04 HVM
       SecurityGroupIds:
         - !Ref InstanceSecurityGroup
@@ -185,15 +184,34 @@ Resources:
           Value: !Ref Tagcpmbackup
       UserData:
         Fn::Base64: !Sub |
-          #!/bin/bash -xe
+          #!/bin/bash -v
           /opt/aws/bin/cfn-init -s ${AWS::StackId} -r UbuntuInstance --region ${AWS::Region}
-          apt-get update -y
-          apt-get upgrade -y
+          sudo apt-get update
+          sudo apt-get -y upgrade
+          sudo apt-get install -y npm
+          sudo npm install -y gtop -g
+          sudo apt-add-repository -y ppa:webupd8team/java
+          sudo apt-get update
+          echo "oracle-java8-installer shared/accepted-oracle-license-v1-1 select true" | sudo debconf-set-selections
+          sudo apt-get install -y oracle-java8-installer
+          sudo apt-get -y install python3 python3-pip
+          pip3 install --upgrade pip
+          sudo apt-get -y install r-base
           cd /tmp
-          wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
-          dpkg -i amazon-ssm-agent.deb
-          systemctl enable amazon-ssm-agent
-          apt-get -y install sssd realmd krb5-user samba-common
-          realm join -U svclinuxdomainjoin@us.scorrd.local us.scorrd.local --verbose
-          systemctl start sssd.service
-          sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config"
+          wget http://mirrors.ocf.berkeley.edu/apache/spark/spark-2.3.0/spark-2.3.0-bin-hadoop2.7.tgz
+          sudo tar -zxvf spark-2.3.0-bin-hadoop2.7.tgz -C /opt/
+          rm spark-2.3.0-bin-hadoop2.7.tgz
+          sudo ln -fs /opt/spark-2.3.0-bin-hadoop2.7/ /opt/spark
+          sudo cp /opt/spark/conf/spark-env.sh.template /opt/spark/conf/spark-env.sh
+          sudo bash -c 'echo "#Spark Environment Variables" >> /opt/spark/conf/spark-env.sh'
+          sudo bash -c 'echo "JAVA_HOME=/usr/lib/jvm/java-8-oracle" >> /opt/spark/conf/spark-env.sh'
+          sudo bash -c 'echo "SPARK_WORKER_MEMORY=4g" >> /opt/spark/conf/spark-env.sh'
+          sudo bash -c 'echo "PYSPARK_PYTHON=python3" >> /opt/spark/conf/spark-env.sh'
+          source /opt/spark/conf/spark-env.sh
+          sudo apt-get -y install npm nodejs-legacy libfontconfig
+          cd /tmp
+          wget http://mirrors.ocf.berkeley.edu/apache/zeppelin/zeppelin-0.7.3/zeppelin-0.7.3-bin-all.tgz
+          sudo tar -zxvf zeppelin-0.7.3-bin-all.tgz -C /opt/
+          rm zeppelin-0.7.3-bin-all.tgz
+          sudo sed -i '14i/opt/zeppelin-0.7.3-bin-all/bin/zeppelin-daemon.sh start' /etc/rc.local
+          init 0

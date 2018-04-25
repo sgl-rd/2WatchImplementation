@@ -132,7 +132,7 @@ Parameters:
 Mappings:
   AMIRegionMap:
     us-east-1:
-      "64": "ami-0c0907d581f42b265"
+      "64": "ami-0b00d7a3f9206edd5"
 
 Resources:
   UbuntuInstance:
@@ -151,7 +151,7 @@ Resources:
       SubnetId: !Ref SubnetId
       InstanceType: !Ref InstType
       IamInstanceProfile: !Ref InstanceProfile
-      ImageId: !FindInMap [AMIRegionMap, !Ref "AWS::Region", 64] # Ubuntu 16.04 HVM
+      ImageId: !FindInMap [AMIRegionMap, !Ref "AWS::Region", 64] 
       SecurityGroupIds:
         - !Ref InstanceSecurityGroup
       KeyName: !Ref KeyName
@@ -189,11 +189,11 @@ Resources:
           /opt/aws/bin/cfn-init -s ${AWS::StackId} -r UbuntuInstance --region ${AWS::Region}
           apt-get update -y
           apt-get upgrade -y
-          cd /tmp
-          wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
-          dpkg -i amazon-ssm-agent.deb
-          systemctl enable amazon-ssm-agent
-          apt-get -y install sssd realmd krb5-user samba-common
-          realm join -U svclinuxdomainjoin@us.scorrd.local us.scorrd.local --verbose
-          systemctl start sssd.service
+          #cd /tmp
+          #wget https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb
+          #dpkg -i amazon-ssm-agent.deb
+          #systemctl enable amazon-ssm-agent
+          #apt-get -y install sssd realmd krb5-user samba-common
+          #realm join -U svclinuxdomainjoin@us.scorrd.local us.scorrd.local --verbose
+          #systemctl start sssd.service
           sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config"
