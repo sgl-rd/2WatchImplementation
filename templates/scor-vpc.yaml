@@ -233,7 +233,7 @@ Resources:
         - DBSubnet1e
         - CIDR
       AvailabilityZone: !Select
-        - '2'
+        - '4'
         - !GetAZs
           Ref: 'AWS::Region'
       Tags:
@@ -281,7 +281,7 @@ Resources:
         - PublicSubnet1e
         - CIDR
       AvailabilityZone: !Select
-        - '3'
+        - '4'
         - !GetAZs
           Ref: 'AWS::Region'
       Tags:
