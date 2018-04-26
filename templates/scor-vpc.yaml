@@ -3,6 +3,7 @@
 
 AWSTemplateFormatVersion: 2010-09-09
 Description: SCOR R and D VPC - Prod + Stage
+
 Mappings:
   Networking:
     VPC:
@@ -29,6 +30,7 @@ Mappings:
       CIDR: 172.20.40.0/24
     DBSubnet1e:
       CIDR: 172.20.45.0/24
+
 Resources:
   # VPCs
   VPC:
