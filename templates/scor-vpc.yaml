@@ -406,15 +406,6 @@ Resources:
         - "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
       Policies:
         -
-          PolicyName: "instance-default-role-policy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              -
-                Effect: "Allow"
-                Action: "*"
-                Resource: "*"
-        -
           PolicyName: "instance-s3-get-put-delete"
           PolicyDocument:
             Version: "2012-10-17"
