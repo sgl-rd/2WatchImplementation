@@ -147,7 +147,7 @@ Resources:
       SubnetIds:
       - subnet-0a04e2307add496c1
       - subnet-0c7be17bbc6a744e4
-      - subnet-08051490e04839127
+      - subnet-04a774b6de777d2b1
       Tags:
       - Key: Name
         Value: !Ref AWS::StackName
