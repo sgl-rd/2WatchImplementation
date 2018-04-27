@@ -157,7 +157,7 @@ Resources:
       SubnetId: !Ref SubnetId
       InstanceType: !Ref InstType
       IamInstanceProfile: !Ref InstanceProfile
-      ImageId: !FindInMap [AMIRegionMap, !Ref"AWS::Region", 64] # Ubuntu 16.04 HVM
+      ImageId: !FindInMap [AMIRegionMap, !Ref "AWS::Region", 64] # Ubuntu 16.04 HVM
       SecurityGroupIds:
         - !Ref InstanceSecurityGroup
       KeyName: !Ref KeyName
