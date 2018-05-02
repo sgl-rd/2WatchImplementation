@@ -132,7 +132,7 @@ Parameters:
 Mappings:
   AMIRegionMap:
     us-east-1:
-      "64": "ami-0c0907d581f42b265"
+      "64": "ami-0e232928f378527a4"
 
 Resources:
   UbuntuInstance:
