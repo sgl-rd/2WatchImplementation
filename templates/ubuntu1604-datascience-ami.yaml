@@ -190,6 +190,8 @@ Resources:
           sudo apt-get -y upgrade
           sudo apt-get install -y npm
           sudo npm install -y gtop -g
+          sudo aws s3 cp s3://sgl-rd-ops-ramp-agent/deployAgent.py ./
+          sudo python deployAgent.py -i silent install
           sudo apt-add-repository -y ppa:webupd8team/java
           sudo apt-get update
           echo "oracle-java8-installer shared/accepted-oracle-license-v1-1 select true" | sudo debconf-set-selections
